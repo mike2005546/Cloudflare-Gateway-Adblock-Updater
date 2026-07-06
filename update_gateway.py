@@ -62,6 +62,31 @@ blocklists: List[Dict[str, str]] = [
         "url": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.plus-onlydomains.txt",
         "backup_url": "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus-onlydomains.txt",
         "priority": 10000
+    },
+    {
+        "name": "LIHKG",
+        "url": "https://raw.githubusercontent.com/mike2005546/LIHKG-Adblock-List/refs/heads/main/lihkg_ad_domain.txt",
+        "priority": 9999
+    },
+    {
+        "name": "AdguardDNS",
+        "url": "https://v.firebog.net/hosts/AdguardDNS.txt",
+        "priority": 9998
+    },
+    {
+        "name": "Easylist",
+        "url": "https://v.firebog.net/hosts/Easylist.txt",
+        "priority": 9997
+    },
+    {
+        "name": "Easyprivacy",
+        "url": "https://v.firebog.net/hosts/Easyprivacy.txt",
+        "priority": 9996
+    },
+    {
+        "name": "AdAway",
+        "url": "https://adaway.org/hosts.txt",
+        "priority": 9995
     }
 ]
 
