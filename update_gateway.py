@@ -69,24 +69,9 @@ blocklists: List[Dict[str, str]] = [
         "priority": 9999
     },
     {
-        "name": "AdguardDNS",
-        "url": "https://v.firebog.net/hosts/AdguardDNS.txt",
-        "priority": 9998
-    },
-    {
-        "name": "Easylist",
-        "url": "https://v.firebog.net/hosts/Easylist.txt",
-        "priority": 9997
-    },
-    {
         "name": "Easyprivacy",
         "url": "https://v.firebog.net/hosts/Easyprivacy.txt",
-        "priority": 9996
-    },
-    {
-        "name": "AdAway",
-        "url": "https://adaway.org/hosts.txt",
-        "priority": 9995
+        "priority": 9998
     }
 ]
 
