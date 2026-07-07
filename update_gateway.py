@@ -67,6 +67,11 @@ blocklists: List[Dict[str, str]] = [
         "name": "LIHKG",
         "url": "https://raw.githubusercontent.com/mike2005546/LIHKG-Adblock-List/refs/heads/main/lihkg_ad_domain.txt",
         "priority": 9999
+    },
+    {
+        "name": "StevenBlack",
+        "url": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+        "priority": 9998
     }
 ]
 
