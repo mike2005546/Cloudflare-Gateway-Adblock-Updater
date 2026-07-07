@@ -58,20 +58,20 @@ session.headers.update(headers)
 # 10000+: Hagezi filters (ordered by importance)
 blocklists: List[Dict[str, str]] = [
     {
+        "name": "LIHKG",
+        "url": "https://raw.githubusercontent.com/mike2005546/LIHKG-Adblock-List/refs/heads/main/lihkg_ad_domain.txt",
+        "priority": 1
+    },
+    {
         "name": "Hagezi Pro++",
         "url": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.plus-onlydomains.txt",
         "backup_url": "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus-onlydomains.txt",
-        "priority": 10000
-    },
-    {
-        "name": "LIHKG",
-        "url": "https://raw.githubusercontent.com/mike2005546/LIHKG-Adblock-List/refs/heads/main/lihkg_ad_domain.txt",
-        "priority": 9999
+        "priority": 2
     },
     {
         "name": "StevenBlack",
         "url": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-        "priority": 9998
+        "priority": 3
     }
 ]
 
