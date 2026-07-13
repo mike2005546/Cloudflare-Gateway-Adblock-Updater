@@ -14,6 +14,7 @@ import logging
 import re
 from typing import Dict, List, Optional
 from datetime import datetime
+from urllib.parse import urlparse
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -58,16 +59,17 @@ session.headers.update(headers)
 # 10000+: Hagezi filters (ordered by importance)
 blocklists: List[Dict[str, str]] = [
     {
-        "name": "LIHKG",
-        "url": "https://raw.githubusercontent.com/mike2005546/LIHKG-Adblock-List/refs/heads/main/lihkg_ad_domain.txt",
-        "priority": 1
-    },
-    {
         "name": "Hagezi Pro++",
         "url": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.plus-onlydomains.txt",
         "backup_url": "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus-onlydomains.txt",
-        "priority": 2
-    }
+        "priority": 10000
+    },
+    {
+        "name": "LIHKG",
+        "url": "https://raw.githubusercontent.com/mike2005546/LIHKG-Adblock-List/refs/heads/main/lihkg_ad_domain.txt",
+        "priority": 10001
+    },
+    
 ]
 
 # Version tracking functions
@@ -263,6 +265,66 @@ def is_valid_domain(domain: str) -> bool:
         return False
     pattern = r'(?i)^([a-z0-9]+(-+[a-z0-9]+)*\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$'
     return bool(re.match(pattern, domain.lower()))
+
+def extract_domain_from_rule(line: str) -> Optional[str]:
+    """
+    Parse a single line from ABP/hosts/URL/one-domain formats and return a plain domain (no port).
+    Returns None if no valid domain could be extracted.
+    Handles forms like:
+      - example.com
+      - ||example.com^
+      - example.com^$third-party
+      - |http://example.com/path^
+      - 0.0.0.0 example.com
+      - 127.0.0.1 example.com
+      - http://example.com:8080/path
+      - comments starting with # or ! or [ are ignored
+    """
+    if not line:
+        return None
+
+    line = line.strip()
+
+    # Ignore typical comment markers
+    if line.startswith('#') or line.startswith('!') or line.startswith('['):
+        return None
+
+    # Hosts file style: "0.0.0.0 example.com" or "127.0.0.1 example.com"
+    m = re.match(r'^(?:0\.0\.0\.0|127\.0\.0\.1)\s+(.+)$', line)
+    if m:
+        cand = m.group(1).strip()
+    else:
+        cand = line
+
+    # Remove ABP modifiers and options: split off anything after '$'
+    cand = cand.split('$', 1)[0]
+
+    # Remove anchor characters used in ABP
+    if cand.startswith('||'):
+        cand = cand[2:]
+    elif cand.startswith('|'):
+        cand = cand[1:]
+
+    # If it looks like a URL, parse the hostname
+    if cand.startswith('http://') or cand.startswith('https://'):
+        try:
+            host = urlparse(cand).hostname
+            cand = host or cand
+        except Exception:
+            pass
+
+    # Trim common separators (^, /, :, ?, whitespace) and ports
+    cand = re.split(r'[\^/:\s\?]', cand)[0]
+
+    # Strip leading/trailing dots and wildcard characters
+    cand = cand.strip().lstrip('.').rstrip('.').replace('*', '')
+
+    # Remove any trailing port leftover like example.com:8080
+    cand = cand.split(':')[0].strip()
+
+    if cand and is_valid_domain(cand):
+        return cand.lower()
+    return None
 
 def chunker(seq: List[str], size: int):
     """Split a sequence into chunks of specified size."""
@@ -603,16 +665,17 @@ def process_filter_async(filter_config: Dict, cached_lists: List[Dict],
     current_version = None
     
     for line in lines:
-        line = line.strip()
-        
+        raw = line.strip()
+    
         # Extract version from header
-        if line.startswith('# Version:') and not current_version:
-            current_version = line.replace('# Version:', '').strip()
+        if raw.startswith('# Version:') and not current_version:
+            current_version = raw.replace('# Version:', '').strip()
             logger.info(f"🚿 Extracted version from blocklist: {current_version}")
-        
-        # Parse domains
-        if line and not line.startswith('#') and is_valid_domain(line):
-            target_domains.add(line)
+    
+        # Try extracting a domain from ABP/hosts/URL/plain formats
+        domain = extract_domain_from_rule(raw)
+        if domain:
+            target_domains.add(domain)
 
     logger.info(f"🎯 Target domains: {len(target_domains):,}")
 
