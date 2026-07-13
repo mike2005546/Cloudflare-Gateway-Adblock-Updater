@@ -57,15 +57,19 @@ session.headers.update(headers)
 # Priority order (lower number = higher priority):
 # 1-9999: Reserved for custom policies (Allow Rules, Content Blocking, etc.)
 # 10000+: Hagezi filters (ordered by importance)
-blocklists: List[Dict[str, str]] = [
+
+# action: "block" || "allow"
+targetLists: List[Dict[str, str]] = [
     {
         "name": "Hagezi Pro++",
+        "action": "block",
         "url": "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.plus-onlydomains.txt",
         "backup_url": "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus-onlydomains.txt",
         "priority": 10000
     },
     {
         "name": "LIHKG",
+        "action": "block",
         "url": "https://raw.githubusercontent.com/mike2005546/LIHKG-Adblock-List/refs/heads/main/lihkg_ad_domain.txt",
         "priority": 10001
     },
@@ -588,6 +592,11 @@ def update_policy_for_filter(filter_config: Dict, final_list_ids: List[str],
     # Build traffic expression
     expression = " or ".join([f"any(dns.domains[*] in ${lid})" for lid in final_list_ids])
     priority = filter_config.get('priority', 99)
+    action = filter_config.get('action', 'block').lower()  # default keep current behavior
+
+    if action not in ('block', 'allow'):
+        logger.warning(f"⚠️ Unsupported action '{action}' for {filter_name}; defaulting to 'block'")
+        action = 'block'
     
     # Build description with version info
     description = build_description_with_version(
@@ -598,7 +607,7 @@ def update_policy_for_filter(filter_config: Dict, final_list_ids: List[str],
     )
     
     policy_payload = {
-        "action": "block",
+        "action": action,
         "description": description,
         "enabled": True,
         "filters": ["dns"],
@@ -957,18 +966,18 @@ if __name__ == "__main__":
     filters_to_update = []
 
     logger.info("🔍 Checking blocklist versions...\n")
-    for bl in blocklists:
-        filter_name = bl['name']
-        should_update, current_version, reason = should_update_filter(bl, cached_rules_early)
+    for tl in targetLists:
+        filter_name = tl['name']
+        should_update, current_version, reason = should_update_filter(tl, cached_rules_early)
         
         if should_update:
             logger.info(f"✅ {filter_name}: WILL UPDATE ({reason})")
-            filters_to_update.append(bl)
+            filters_to_update.append(tl)
         else:
             logger.info(f"⏭️ {filter_name}: SKIP ({reason})")
 
     logger.info(f"\n{'='*60}")
-    logger.info(f"🆙 Filters to update: {len(filters_to_update)}/{len(blocklists)}")
+    logger.info(f"🆙 Filters to update: {len(filters_to_update)}/{len(targetLists)}")
     logger.info(f"{'='*60}\n")
 
     if not filters_to_update:
@@ -997,10 +1006,10 @@ if __name__ == "__main__":
 
     script_start = time.time()
 
-    for bl in filters_to_update:
+    for tl in filters_to_update:
         try:
             filter_start = time.time()
-            result = process_filter_async(bl, cached_lists, cached_rules)
+            result = process_filter_async(tl, cached_lists, cached_rules)
             filter_elapsed = time.time() - filter_start
             
             if result['success']:
@@ -1015,11 +1024,11 @@ if __name__ == "__main__":
                 cached_rules = get_all_paginated(f"{base_url}/rules")
                 cached_lists = get_all_paginated(f"{base_url}/lists")
             else:
-                stats["errors"].append(bl['name'])
+                stats["errors"].append(tl['name'])
                 
         except Exception as e:
-            logger.error(f"🚫 Failed to process {bl['name']}: {e}", exc_info=True)
-            stats["errors"].append(bl['name'])
+            logger.error(f"🚫 Failed to process {tl['name']}: {e}", exc_info=True)
+            stats["errors"].append(tl['name'])
 
     script_elapsed = time.time() - script_start
 
@@ -1028,9 +1037,9 @@ if __name__ == "__main__":
     logger.info(f"\n{'='*60}")
     logger.info("SUMMARY")
     logger.info(f"{'='*60}")
-    logger.info(f"🧪 Filters checked: {len(blocklists)}")
+    logger.info(f"🧪 Filters checked: {len(targetLists)}")
     logger.info(f"⬆️ Filters updated: {stats['filters_processed']}/{len(filters_to_update)}")
-    logger.info(f"⏭️ Filters skipped: {len(blocklists) - len(filters_to_update)}")
+    logger.info(f"⏭️ Filters skipped: {len(targetLists) - len(filters_to_update)}")
     logger.info(f"🌐 Total domains: {stats['total_domains']:,}")
     logger.info(f"🧩 Lists created: {stats['lists_created']}")
     logger.info(f"🏛️ Policies created: {stats['policies_created']}")
